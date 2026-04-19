@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TQQQ Algo</title>
+<title>TQQQ Pro Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -11,711 +11,181 @@
     --accent:#00e5ff; --green:#00ff88; --red:#ff3e5e;
     --yellow:#ffd600; --text:#e8f0fe; --muted:#5a7090;
   }
-  *{margin:0;padding:0;box-sizing:border-box;}
-  body{
-    background:var(--bg);color:var(--text);
-    font-family:'Space Mono',monospace;min-height:100vh;
-    padding:20px 16px 80px;
-    background-image:
-      radial-gradient(ellipse 80% 40% at 50% -10%,rgba(0,100,200,0.12) 0%,transparent 70%),
-      repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(26,38,64,0.4) 39px,rgba(26,38,64,0.4) 40px),
-      repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(26,38,64,0.4) 39px,rgba(26,38,64,0.4) 40px);
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Space Mono', monospace; padding: 20px;
+    background-image: radial-gradient(ellipse 80% 40% at 50% -10%,rgba(0,100,200,0.12) 0%,transparent 70%);
   }
-
-  /* HEADER */
-  header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border);}
-  .logo h1{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;color:#fff;}
-  .logo h1 span{color:var(--accent);}
-  .logo p{font-size:0.58rem;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-top:4px;}
-  .last-run{font-size:0.58rem;color:var(--muted);text-align:right;line-height:1.8;}
-  .last-run strong{color:var(--text);}
-
-  /* POSITION INPUT */
-  .position-panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px;}
-  .panel-title{font-family:'Syne',sans-serif;font-size:0.62rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;}
-  .pos-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .input-group{display:flex;flex-direction:column;gap:6px;}
-  .input-label{font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
-  .input-group input,.input-group select{
-    background:rgba(0,0,0,.5);border:1px solid var(--border);border-radius:8px;
-    color:#fff;font-family:'Space Mono',monospace;font-size:.85rem;
-    padding:12px 10px;width:100%;outline:none;transition:border-color .2s;
-    -webkit-appearance:none;appearance:none;
+  .container { max-width: 900px; margin: 0 auto; }
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+  .title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 24px; color: var(--accent); }
+  
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+  .input-group { display: flex; gap: 10px; margin-bottom: 10px; }
+  input { 
+    background: #111a2e; border: 1px solid var(--border); color: white; 
+    padding: 12px; border-radius: 8px; flex: 1; font-family: inherit;
   }
-  .input-group input:focus,.input-group select:focus{border-color:var(--accent);}
-  .input-group select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%235a7090' d='M6 8L0 0h12z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;}
-  .input-group select option{background:#0b1120;}
-
-  /* RUN BUTTON */
-  .run-btn{
-    width:100%;padding:22px;background:var(--accent);color:#000;
-    font-family:'Syne',sans-serif;font-size:1.15rem;font-weight:800;
-    letter-spacing:.08em;border:none;border-radius:12px;cursor:pointer;
-    text-transform:uppercase;transition:all .2s;margin-bottom:16px;
-    display:flex;align-items:center;justify-content:center;gap:12px;
-    -webkit-tap-highlight-color:transparent;
+  button { 
+    background: var(--accent); color: #000; border: none; padding: 0 25px; 
+    border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s;
   }
-  .run-btn:active{transform:scale(0.98);}
-  .run-btn:disabled{background:#1a3a4a;color:var(--muted);cursor:not-allowed;}
+  button:hover { opacity: 0.8; transform: translateY(-1px); }
 
-  /* ══ LOADING OVERLAY ══ */
-  .loading-overlay{
-    display:none;position:fixed;inset:0;z-index:1000;
-    background:rgba(5,8,16,0.97);
-    flex-direction:column;align-items:center;justify-content:center;
-    padding:30px;
-  }
-  .loading-overlay.show{display:flex;}
+  .step-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 15px; }
+  .step { padding: 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 12px; opacity: 0.5; }
+  .step.active { opacity: 1; border-color: var(--accent); color: var(--accent); }
+  .step.success { opacity: 1; border-color: var(--green); color: var(--green); }
 
-  .loading-title{
-    font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;
-    color:#fff;margin-bottom:8px;text-align:center;letter-spacing:.05em;
-  }
-  .loading-subtitle{font-size:.65rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:40px;text-align:center;}
-
-  /* Big animated progress ring */
-  .progress-ring-wrap{position:relative;width:140px;height:140px;margin-bottom:36px;}
-  .progress-ring{transform:rotate(-90deg);}
-  .ring-bg{fill:none;stroke:var(--border);stroke-width:8;}
-  .ring-fill{fill:none;stroke:var(--accent);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .6s ease;stroke-dasharray:380;stroke-dashoffset:380;}
-  .ring-fill.step1{stroke-dashoffset:304;} /* 20% */
-  .ring-fill.step2{stroke-dashoffset:190;} /* 50% */
-  .ring-fill.step3{stroke-dashoffset:114;} /* 70% */
-  .ring-fill.step4{stroke-dashoffset:38;}  /* 90% */
-  .ring-fill.done {stroke-dashoffset:0;stroke:var(--green);}
-  .ring-fill.error{stroke-dashoffset:0;stroke:var(--red);}
-  .ring-pct{
-    position:absolute;inset:0;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;
-  }
-  .ring-pct-num{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:#fff;line-height:1;}
-  .ring-pct-label{font-size:.55rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-top:4px;}
-
-  /* Step list */
-  .step-list{width:100%;max-width:340px;}
-  .step-row{
-    display:flex;align-items:center;gap:14px;padding:12px 0;
-    border-bottom:1px solid rgba(26,38,64,.5);
-  }
-  .step-row:last-child{border-bottom:none;}
-  .step-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;transition:all .4s;}
-  .step-icon.waiting{background:rgba(26,38,64,.8);border:1px solid var(--border);}
-  .step-icon.active{background:rgba(0,229,255,.12);border:1px solid var(--accent);animation:iconPulse 1.2s infinite;}
-  .step-icon.done{background:rgba(0,255,136,.12);border:1px solid var(--green);}
-  .step-icon.error{background:rgba(255,62,94,.12);border:1px solid var(--red);}
-  @keyframes iconPulse{0%,100%{box-shadow:0 0 0 0 rgba(0,229,255,.3)}50%{box-shadow:0 0 0 8px rgba(0,229,255,0)}}
-  .step-info{flex:1;}
-  .step-name{font-size:.72rem;color:var(--text);font-weight:700;margin-bottom:2px;}
-  .step-detail{font-size:.62rem;color:var(--muted);line-height:1.4;transition:color .3s;}
-  .step-detail.success{color:var(--green);}
-  .step-detail.failed{color:var(--red);}
-
-  /* ══ DATA CONFIRMATION BANNER ══ */
-  .data-confirmed{
-    background:rgba(0,255,136,.06);border:1px solid rgba(0,255,136,.3);
-    border-radius:12px;padding:16px;margin-bottom:14px;display:none;
-  }
-  .data-confirmed.show{display:block;}
-  .dc-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
-  .dc-checkmark{
-    width:28px;height:28px;border-radius:50%;background:rgba(0,255,136,.15);
-    border:1.5px solid var(--green);display:flex;align-items:center;justify-content:center;
-    font-size:1rem;flex-shrink:0;
-  }
-  .dc-title{font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;color:var(--green);}
-  .dc-timestamp{font-size:.6rem;color:var(--muted);margin-left:auto;}
-  .dc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
-  .dc-item{background:rgba(0,0,0,.3);border-radius:8px;padding:10px 12px;}
-  .dc-label{font-size:.52rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
-  .dc-value{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;color:#fff;}
-  .dc-signal{font-size:.55rem;margin-top:3px;text-transform:uppercase;letter-spacing:.08em;}
-  .sig-green{color:var(--green);} .sig-red{color:var(--red);} .sig-yellow{color:var(--yellow);} .sig-accent{color:var(--accent);}
-
-  /* ══ VERDICT ══ */
-  .verdict-box{border-radius:14px;padding:24px;margin-bottom:14px;display:none;animation:fadeUp .4s ease;}
-  .verdict-box.show{display:block;}
-  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-  .verdict-box.BUY {background:rgba(0,255,136,.07);border:2px solid rgba(0,255,136,.5);}
-  .verdict-box.HOLD{background:rgba(0,229,255,.06);border:2px solid rgba(0,229,255,.4);}
-  .verdict-box.SELL{background:rgba(255,62,94,.08);border:2px solid rgba(255,62,94,.5);}
-  .verdict-box.FLAT{background:rgba(255,214,0,.06);border:2px solid rgba(255,214,0,.4);}
-  .verdict-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
-  .verdict-label{font-family:'Syne',sans-serif;font-size:3.2rem;font-weight:800;letter-spacing:-2px;line-height:1;}
-  .verdict-box.BUY  .verdict-label{color:var(--green);}
-  .verdict-box.HOLD .verdict-label{color:var(--accent);}
-  .verdict-box.SELL .verdict-label{color:var(--red);}
-  .verdict-box.FLAT .verdict-label{color:var(--yellow);}
-  .verdict-right{text-align:right;}
-  .verdict-date{font-size:.58rem;color:var(--muted);}
-  .verdict-sub{font-size:.65rem;color:var(--muted);margin-top:4px;}
-  .rules-list{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
-  .rule-line{display:flex;align-items:flex-start;gap:10px;font-size:.66rem;line-height:1.55;padding:9px 12px;border-radius:7px;}
-  .rule-line.pass{background:rgba(0,255,136,.05);color:#a0f0cc;}
-  .rule-line.fail{background:rgba(255,62,94,.06);color:#f0a0b0;}
-  .rule-line.warn{background:rgba(255,214,0,.05);color:#f0dfa0;}
-  .rule-icon{font-size:.85rem;flex-shrink:0;margin-top:1px;}
-  .verdict-action{padding:16px;background:rgba(0,0,0,.4);border-radius:10px;font-size:.72rem;line-height:1.75;color:#d0e0f0;border-left:3px solid var(--accent);}
-  .verdict-action strong{color:#fff;display:block;margin-bottom:4px;}
-
-  /* AI CONTEXT */
-  .ai-box{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;display:none;}
-  .ai-box.show{display:block;}
-  .ai-label{font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
-  .ai-text{font-size:.7rem;line-height:1.8;color:#b0c8e0;}
-
-  /* ERROR */
-  .error-box{background:rgba(255,62,94,.08);border:1px solid rgba(255,62,94,.35);border-radius:10px;padding:18px;margin-bottom:14px;display:none;}
-  .error-box.show{display:block;}
-  .err-title{font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;color:var(--red);margin-bottom:8px;}
-  .err-msg{font-size:.68rem;color:#f0a0b0;line-height:1.6;}
-  .err-retry{margin-top:12px;padding:10px 18px;background:rgba(255,62,94,.15);border:1px solid rgba(255,62,94,.3);border-radius:6px;color:var(--red);font-size:.68rem;cursor:pointer;font-family:'Space Mono',monospace;}
-
-  /* REFERENCE */
-  .section-title{font-family:'Syne',sans-serif;font-size:.65rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin:24px 0 10px;display:flex;align-items:center;gap:10px;}
-  .section-title::after{content:'';flex:1;height:1px;background:var(--border);}
-  .ref-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px;}
-  .checklist{display:flex;flex-direction:column;}
-  .check-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(26,38,64,.6);}
-  .check-item:last-child{border-bottom:none;}
-  .check-num{width:20px;height:20px;border-radius:50%;border:1px solid var(--accent);color:var(--accent);font-size:.58rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
-  .check-x{border-color:var(--red);color:var(--red);}
-  .check-title{font-size:.7rem;font-weight:700;color:#fff;margin-bottom:2px;}
-  .check-desc{font-size:.62rem;color:var(--muted);line-height:1.5;}
-  .badge{display:inline-block;padding:1px 7px;border-radius:3px;font-size:.55rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-left:4px;}
-  .bg{background:rgba(0,255,136,.12);color:var(--green);border:1px solid rgba(0,255,136,.25);}
-  .by{background:rgba(255,214,0,.1);color:var(--yellow);border:1px solid rgba(255,214,0,.25);}
-  .ba{background:rgba(0,229,255,.1);color:var(--accent);border:1px solid rgba(0,229,255,.25);}
-  .br{background:rgba(255,62,94,.12);color:var(--red);border:1px solid rgba(255,62,94,.25);}
-  .exit-row{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid rgba(26,38,64,.6);font-size:.65rem;}
-  .exit-row:last-child{border-bottom:none;}
-  .exit-tag{flex-shrink:0;padding-top:1px;}
-  .exit-body{flex:1;line-height:1.5;}
-  .exit-trigger{color:var(--muted);}
-  .exit-action{font-weight:700;margin-top:2px;}
-
-  footer{margin-top:32px;padding-top:16px;border-top:1px solid var(--border);font-size:.56rem;color:var(--muted);line-height:1.8;}
+  .verdict-box { display: none; text-align: center; padding: 40px; border-radius: 16px; margin-top: 20px; transition: 0.3s; }
+  .verdict-box.BUY { display: block; background: rgba(0,255,136,0.1); border: 2px solid var(--green); }
+  .verdict-box.SELL { display: block; background: rgba(255,62,94,0.1); border: 2px solid var(--red); }
+  .verdict-box.HOLD { display: block; background: rgba(255,214,0,0.1); border: 2px solid var(--yellow); }
+  
+  .v-label { font-size: 48px; font-weight: 800; font-family: 'Syne', sans-serif; letter-spacing: 2px; }
+  .v-sub { font-size: 14px; margin-top: 10px; color: var(--muted); }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 30px; }
+  .stat-card { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; }
+  .stat-val { font-size: 18px; font-weight: bold; color: white; display: block; }
+  .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; }
 </style>
 </head>
 <body>
 
-<!-- ══ LOADING OVERLAY (full screen on phone) ══ -->
-<div class="loading-overlay" id="loadingOverlay">
-  <div class="loading-title">Fetching Live Data</div>
-  <div class="loading-subtitle">Do not close this screen</div>
+<div class="container">
+  <div class="header">
+    <div class="title">TQQQ ALGO v2.0</div>
+    <div id="runtime" style="color:var(--muted); font-size:12px;">System Ready</div>
+  </div>
 
-  <div class="progress-ring-wrap">
-    <svg class="progress-ring" width="140" height="140" viewBox="0 0 140 140">
-      <circle class="ring-bg" cx="70" cy="70" r="60"/>
-      <circle class="ring-fill" id="ringFill" cx="70" cy="70" r="60"/>
-    </svg>
-    <div class="ring-pct">
-      <div class="ring-pct-num" id="ringPct">0%</div>
-      <div class="ring-pct-label" id="ringLabel">Starting</div>
+  <div class="panel">
+    <div class="input-group">
+      <input type="text" id="symbolInput" value="TQQQ" placeholder="Enter Ticker">
+      <button onclick="runAlgorithm()">RUN ANALYSIS</button>
+    </div>
+    <div class="step-list" id="stepList">
+      <div class="step" id="step1">1. AUTHENTICATING</div>
+      <div class="step" id="step2">2. FETCHING PRICE DATA</div>
+      <div class="step" id="step3">3. ANALYZING VXX PROXY</div>
+      <div class="step" id="step4">4. CALCULATING RSI/EMA</div>
     </div>
   </div>
 
-  <div class="step-list">
-    <div class="step-row">
-      <div class="step-icon waiting" id="icon1"><span id="ico1">⏳</span></div>
-      <div class="step-info">
-        <div class="step-name">Connect to market data</div>
-        <div class="step-detail" id="detail1">Waiting...</div>
+  <div id="verdictBox" class="verdict-box">
+    <div class="v-label" id="vLabel">---</div>
+    <div class="v-sub" id="vSub">Waiting for data collection...</div>
+    
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-label">Current Price</span>
+        <span class="stat-val" id="statPrice">--</span>
       </div>
-    </div>
-    <div class="step-row">
-      <div class="step-icon waiting" id="icon2"><span id="ico2">⏳</span></div>
-      <div class="step-info">
-        <div class="step-name">Download TQQQ indicators</div>
-        <div class="step-detail" id="detail2">Waiting...</div>
+      <div class="stat-card">
+        <span class="stat-label">Relative Strength (RSI)</span>
+        <span class="stat-val" id="statRSI">--</span>
       </div>
-    </div>
-    <div class="step-row">
-      <div class="step-icon waiting" id="icon3"><span id="ico3">⏳</span></div>
-      <div class="step-info">
-        <div class="step-name">Download VIX &amp; QQQ macro</div>
-        <div class="step-detail" id="detail3">Waiting...</div>
-      </div>
-    </div>
-    <div class="step-row">
-      <div class="step-icon waiting" id="icon4"><span id="ico4">⏳</span></div>
-      <div class="step-info">
-        <div class="step-name">Run algo rules</div>
-        <div class="step-detail" id="detail4">Waiting...</div>
-      </div>
-    </div>
-    <div class="step-row">
-      <div class="step-icon waiting" id="icon5"><span id="ico5">⏳</span></div>
-      <div class="step-info">
-        <div class="step-name">Generate verdict</div>
-        <div class="step-detail" id="detail5">Waiting...</div>
+      <div class="stat-card">
+        <span class="stat-label">Volatility (VXX)</span>
+        <span class="stat-val" id="statVXX">--</span>
       </div>
     </div>
   </div>
 </div>
-
-<!-- ══ MAIN UI ══ -->
-<header>
-  <div class="logo">
-    <h1>TQQQ <span>ALGO</span></h1>
-    <p>Live Auto-Analysis · Swing Trade</p>
-  </div>
-  <div class="last-run">
-    <div>Last run: <strong id="lastRunTime">Never</strong></div>
-    <div>Status: <strong id="lastStatus">—</strong></div>
-  </div>
-</header>
-
-<!-- POSITION -->
-<div class="position-panel">
-  <div class="panel-title">Your Position</div>
-  <div class="pos-grid">
-    <div class="input-group" style="grid-column:1/-1">
-      <span class="input-label">Current Status</span>
-      <select id="hasPosition" onchange="togglePos()">
-        <option value="none">Flat — No position</option>
-        <option value="long">Long — I own TQQQ</option>
-      </select>
-    </div>
-    <div class="input-group" id="entryGroup" style="opacity:.35;pointer-events:none">
-      <span class="input-label">Entry Price ($)</span>
-      <input type="number" id="entryPrice" placeholder="e.g. 52.00" step="0.01" inputmode="decimal">
-    </div>
-    <div class="input-group" id="daysGroup" style="opacity:.35;pointer-events:none">
-      <span class="input-label">Days Held</span>
-      <input type="number" id="daysHeld" placeholder="e.g. 5" min="0" inputmode="numeric">
-    </div>
-    <div class="input-group" style="grid-column:1/-1">
-      <span class="input-label">Big 5 Earnings Tomorrow? (check earningswhispers.com)</span>
-      <select id="earnings">
-        <option value="no">No — safe to trade</option>
-        <option value="yes">Yes — AAPL / MSFT / NVDA / META / AMZN</option>
-      </select>
-    </div>
-  </div>
-</div>
-
-<!-- RUN BUTTON -->
-<button class="run-btn" id="runBtn" onclick="runAnalysis()">
-  ▶ &nbsp; RUN DAILY ANALYSIS
-</button>
-
-<!-- ERROR -->
-<div class="error-box" id="errorBox">
-  <div class="err-title">⚠ Data Fetch Failed</div>
-  <div class="err-msg" id="errMsg"></div>
-  <button class="err-retry" onclick="runAnalysis()">Try Again</button>
-</div>
-
-<!-- DATA CONFIRMED BANNER -->
-<div class="data-confirmed" id="dataConfirmed">
-  <div class="dc-header">
-    <div class="dc-checkmark">✓</div>
-    <div class="dc-title">Live Data Downloaded Successfully</div>
-    <div class="dc-timestamp" id="dcTime"></div>
-  </div>
-  <div class="dc-grid">
-    <div class="dc-item"><div class="dc-label">TQQQ Price</div><div class="dc-value" id="dc-price">—</div><div class="dc-signal" id="dc-psig"></div></div>
-    <div class="dc-item"><div class="dc-label">EMA 8</div><div class="dc-value" id="dc-ema8">—</div><div class="dc-signal" id="dc-esig"></div></div>
-    <div class="dc-item"><div class="dc-label">EMA 21</div><div class="dc-value" id="dc-ema21">—</div><div class="dc-signal" id="dc-e21sig"></div></div>
-    <div class="dc-item"><div class="dc-label">RSI (14)</div><div class="dc-value" id="dc-rsi">—</div><div class="dc-signal" id="dc-rsig"></div></div>
-    <div class="dc-item"><div class="dc-label">VIX</div><div class="dc-value" id="dc-vix">—</div><div class="dc-signal" id="dc-vsig"></div></div>
-    <div class="dc-item"><div class="dc-label">QQQ Macro</div><div class="dc-value" id="dc-qqq">—</div><div class="dc-signal" id="dc-qsig"></div></div>
-  </div>
-</div>
-
-<!-- VERDICT -->
-<div class="verdict-box" id="verdictBox">
-  <div class="verdict-top">
-    <div class="verdict-label" id="verdictLabel"></div>
-    <div class="verdict-right">
-      <div class="verdict-date" id="verdictDate"></div>
-      <div class="verdict-sub" id="verdictSub"></div>
-    </div>
-  </div>
-  <div class="rules-list" id="rulesList"></div>
-  <div class="verdict-action" id="verdictAction"></div>
-</div>
-
-<!-- AI CONTEXT -->
-<div class="ai-box" id="aiBox">
-  <div class="ai-label">Why the algo said this</div>
-  <div class="ai-text" id="aiText"></div>
-</div>
-
-<!-- REFERENCE -->
-<div class="section-title">Entry Rules</div>
-<div class="ref-card">
-  <div class="checklist">
-    <div class="check-item"><div class="check-num">1</div><div><div class="check-title">QQQ above 200-day EMA <span class="badge bg">Macro</span></div><div class="check-desc">If QQQ is below the 200 EMA, stay cash. No exceptions.</div></div></div>
-    <div class="check-item"><div class="check-num">2</div><div><div class="check-title">EMA8 crosses above EMA21 <span class="badge ba">Trend</span></div><div class="check-desc">Wait for candle to close above EMA21. Enter next morning's open.</div></div></div>
-    <div class="check-item"><div class="check-num">3</div><div><div class="check-title">RSI between 40–65 <span class="badge by">Momentum</span></div><div class="check-desc">RSI above 65 = skip trade, wait for pullback.</div></div></div>
-    <div class="check-item"><div class="check-num">4</div><div><div class="check-title">VIX below 25 + volume confirms <span class="badge bg">Fear/Vol</span></div><div class="check-desc">Volume ≥1.2× avg. VIX 20–25: half position size only.</div></div></div>
-  </div>
-</div>
-
-<div class="section-title">Exit Rules</div>
-<div class="ref-card">
-  <div class="exit-row"><div class="exit-tag"><span class="badge br">Stop</span></div><div class="exit-body"><div class="exit-trigger">Price drops 10% from entry</div><div class="exit-action" style="color:var(--red)">Exit 100% next open</div></div></div>
-  <div class="exit-row"><div class="exit-tag"><span class="badge by">Trail</span></div><div class="exit-body"><div class="exit-trigger">After +15%, drops 8% from peak</div><div class="exit-action" style="color:var(--yellow)">Exit — locks in gains</div></div></div>
-  <div class="exit-row"><div class="exit-tag"><span class="badge bg">Target</span></div><div class="exit-body"><div class="exit-trigger">Price reaches +20–25% from entry</div><div class="exit-action" style="color:var(--green)">Sell 50–75%, trail rest</div></div></div>
-  <div class="exit-row"><div class="exit-tag"><span class="badge ba">EMA</span></div><div class="exit-body"><div class="exit-trigger">EMA8 crosses below EMA21</div><div class="exit-action" style="color:var(--accent)">Exit full position next open</div></div></div>
-  <div class="exit-row"><div class="exit-tag"><span class="badge br">VIX</span></div><div class="exit-body"><div class="exit-trigger">VIX closes above 30</div><div class="exit-action" style="color:var(--red)">Exit all next morning</div></div></div>
-  <div class="exit-row"><div class="exit-tag"><span class="badge by">Time</span></div><div class="exit-body"><div class="exit-trigger">10 days held, less than +10%</div><div class="exit-action" style="color:var(--yellow)">Exit. Reset. Wait.</div></div></div>
-</div>
-
-<div class="section-title">Iron Rules</div>
-<div class="ref-card">
-  <div class="checklist">
-    <div class="check-item"><div class="check-num check-x">✕</div><div><div class="check-title">Never average down</div><div class="check-desc">TQQQ can drop 30–50%. Adding to a loser breaks the system.</div></div></div>
-    <div class="check-item"><div class="check-num check-x">✕</div><div><div class="check-title">No new entries on FOMC days</div><div class="check-desc">Wait 1 full day after Fed decisions.</div></div></div>
-    <div class="check-item"><div class="check-num check-x">✕</div><div><div class="check-title">Reduce before Big 5 earnings (not all season)</div><div class="check-desc">AAPL/MSFT/NVDA/META/AMZN = ~45% of QQQ. Exit or cut 50% if one reports tomorrow. Check earningswhispers.com weekly.</div></div></div>
-    <div class="check-item"><div class="check-num check-x">✕</div><div><div class="check-title">Never override a stop-loss</div><div class="check-desc">Stop triggers = execute it. No debate. No exceptions.</div></div></div>
-  </div>
-</div>
-
-<footer>⚠️ Educational purposes only. Not financial advice. TQQQ is a 3× leveraged ETF — substantial risk of loss including total capital. Consult a licensed financial advisor before investing.</footer>
 
 <script>
-// ── TOGGLE POSITION FIELDS ──────────────────────────────────────────────────
-function togglePos() {
-  const on = document.getElementById('hasPosition').value === 'long';
-  ['entryGroup','daysGroup'].forEach(id => {
-    const el = document.getElementById(id);
-    el.style.opacity = on ? '1' : '.35';
-    el.style.pointerEvents = on ? 'auto' : 'none';
-  });
-}
+const API_KEY = "fs4139MjTB8rclaerCjk0CMB59W7QCMS";
 
-// ── LOADING STEP HELPERS ────────────────────────────────────────────────────
-function setStep(n, state, detail, isSuccess) {
-  const icon   = document.getElementById(`icon${n}`);
-  const ico    = document.getElementById(`ico${n}`);
-  const det    = document.getElementById(`detail${n}`);
-  const emojis = { waiting:'⏳', active:'🔄', done:'✅', error:'❌' };
-  icon.className = `step-icon ${state}`;
-  ico.textContent = emojis[state] || '⏳';
-  if (detail) {
-    det.textContent = detail;
-    det.className = `step-detail${isSuccess===true?' success':isSuccess===false?' failed':''}`;
-  }
-}
+async function runAlgorithm() {
+    const symbol = document.getElementById('symbolInput').value.toUpperCase();
+    const steps = ['step1', 'step2', 'step3', 'step4'];
+    steps.forEach(id => document.getElementById(id).className = 'step');
 
-function setRing(stepClass, pct, label) {
-  document.getElementById('ringFill').className = `ring-fill ${stepClass}`;
-  document.getElementById('ringPct').textContent = pct + '%';
-  document.getElementById('ringLabel').textContent = label;
-}
-
-// ── FORMAT HELPERS ──────────────────────────────────────────────────────────
-const f = (n, d=2) => typeof n === 'number' ? n.toFixed(d) : '—';
-
-// ── MAIN ────────────────────────────────────────────────────────────────────
-async function runAnalysis() {
-  // Reset
-  document.getElementById('runBtn').disabled = true;
-  document.getElementById('errorBox').className = 'error-box';
-  document.getElementById('dataConfirmed').className = 'data-confirmed';
-  document.getElementById('verdictBox').className = 'verdict-box';
-  document.getElementById('aiBox').className = 'ai-box';
-  [1,2,3,4,5].forEach(n => setStep(n, 'waiting', 'Waiting...'));
-  setRing('', 0, 'Starting');
-  document.getElementById('loadingOverlay').className = 'loading-overlay show';
-  window.scrollTo(0, 0);
-
-  try {
-    const pos      = document.getElementById('hasPosition').value;
-    const entry    = parseFloat(document.getElementById('entryPrice').value) || null;
-    const daysHeld = parseInt(document.getElementById('daysHeld').value) || 0;
-    const earnings = document.getElementById('earnings').value;
-    const today    = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-
-    // ── STEP 1: Connect ──────────────────────────────────────────────────
-    setStep(1, 'active', 'Connecting to Claude AI...');
-    setRing('step1', 10, 'Connecting');
-    await sleep(300);
-
-    // ── STEP 2 + 3: Fetch market data ────────────────────────────────────
-    setStep(1, 'done', 'Connected ✓', true);
-    setStep(2, 'active', 'Searching for TQQQ price, EMA, RSI...');
-    setRing('step2', 30, 'Downloading');
-
-    const dataPrompt = `Today is ${today}.
-
-Search the web and find the following CURRENT market data. Use multiple searches as needed.
-
-Find ALL of:
-1. TQQQ current/latest closing price
-2. TQQQ EMA 8 and EMA 21 (daily timeframe)
-3. TQQQ RSI 14 (daily)
-4. VIX index current level
-5. QQQ price and QQQ 200-day moving average (to determine if QQQ is above or below it)
-6. TQQQ today's volume vs its 20-day average volume
-
-Respond ONLY with a raw JSON object — no markdown, no backticks, no explanation text whatsoever. Exactly this structure:
-{
-  "tqqq_price": <number>,
-  "ema8": <number>,
-  "ema21": <number>,
-  "rsi14": <number>,
-  "vix": <number>,
-  "qqq_above_200": <true or false>,
-  "volume_signal": <"high", "normal", or "low">,
-  "volume_ratio": <number or null>,
-  "data_timestamp": "<when data is from>",
-  "data_notes": "<any caveats about data freshness>"
-}`;
-
-    const res1 = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        messages: [{ role: 'user', content: dataPrompt }]
-      })
-    });
-
-    if (!res1.ok) {
-      const e = await res1.json();
-      throw new Error(e.error?.message || `API error ${res1.status}`);
-    }
-
-    const json1 = await res1.json();
-    const rawText = json1.content.filter(b => b.type === 'text').map(b => b.text).join('').trim();
-
-    let mkt;
     try {
-      const clean = rawText.replace(/```json|```/g,'').trim();
-      mkt = JSON.parse(clean);
-    } catch {
-      const m = rawText.match(/\{[\s\S]*?\}/);
-      if (!m) throw new Error('Could not read market data from the response. Try again in a moment.');
-      mkt = JSON.parse(m[0]);
+        // Step 1: Auth
+        setStep('step1', 'active');
+        await new Promise(r => setTimeout(r, 500)); // UI polish
+        setStep('step1', 'success');
+
+        // Step 2: Fetch TQQQ Data (using Massive v3 Aggregates)
+        setStep('step2', 'active');
+        const endDate = new Date().toISOString().split('T')[0];
+        const startDate = new Date(Date.now() - 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        
+        const priceRes = await fetch(`https://api.massive.com/v3/aggs/ticker/${symbol}/range/1/day/${startDate}/${endDate}?apiKey=${API_KEY}`);
+        const priceData = await priceRes.json();
+        if(!priceData.results) throw new Error("Data fetch failed");
+        
+        const closes = priceData.results.map(r => r.c);
+        const currentPrice = closes[closes.length - 1];
+        setStep('step2', 'success');
+
+        // Step 3: Fetch VXX (Volatility Proxy)
+        setStep('step3', 'active');
+        const vxxRes = await fetch(`https://api.massive.com/v3/aggs/ticker/VXX/range/1/day/${startDate}/${endDate}?apiKey=${API_KEY}`);
+        const vxxData = await vxxRes.json();
+        const vxxPrice = vxxData.results[vxxData.results.length - 1].c;
+        const vxxPrev = vxxData.results[vxxData.results.length - 2].c;
+        const volSpiking = vxxPrice > vxxPrev * 1.05; // 5% spike in VXX is a warning
+        setStep('step3', 'success');
+
+        // Step 4: Calculate Technicals
+        setStep('step4', 'active');
+        const rsi = calculateRSI(closes, 14);
+        const ema200 = calculateEMA(closes, 200);
+        setStep('step4', 'success');
+
+        // Determine Verdict
+        let verdict = "HOLD";
+        let subText = "Trend is stable. No immediate action required.";
+
+        if (currentPrice > ema200 && rsi < 40 && !volSpiking) {
+            verdict = "BUY";
+            subText = "Golden setup: Price above long-term trend with oversold RSI.";
+        } else if (rsi > 75 || currentPrice < ema200 || volSpiking) {
+            verdict = "SELL";
+            subText = rsi > 75 ? "Overbought conditions detected." : "Trend breakdown or Volatility spike.";
+        }
+
+        displayResults(verdict, subText, currentPrice, rsi, vxxPrice);
+
+    } catch (err) {
+        alert("Error: " + err.message);
     }
-
-    // Validate we got real numbers
-    const required = ['tqqq_price','ema8','ema21','rsi14','vix'];
-    const missing = required.filter(k => typeof mkt[k] !== 'number');
-    if (missing.length > 0) throw new Error(`Some data could not be fetched: ${missing.join(', ')}. Markets may be closed or data unavailable. Try again after 4pm ET on a trading day.`);
-
-    setStep(2, 'done', `TQQQ $${f(mkt.tqqq_price)} · EMA8 $${f(mkt.ema8)} · RSI ${f(mkt.rsi14,1)}`, true);
-    setStep(3, 'active', 'Verifying VIX and QQQ macro filter...');
-    setRing('step3', 60, 'Verifying');
-    await sleep(300);
-    setStep(3, 'done', `VIX ${f(mkt.vix,1)} · QQQ ${mkt.qqq_above_200 ? 'Above 200 EMA ✓' : 'Below 200 EMA ✗'}`, true);
-
-    // ── POPULATE DATA BANNER ─────────────────────────────────────────────
-    const now = new Date();
-    document.getElementById('dcTime').textContent = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-    document.getElementById('dc-price').textContent = `$${f(mkt.tqqq_price)}`;
-    document.getElementById('dc-ema8').textContent  = `$${f(mkt.ema8)}`;
-    document.getElementById('dc-ema21').textContent = `$${f(mkt.ema21)}`;
-    document.getElementById('dc-rsi').textContent   = f(mkt.rsi14,1);
-    document.getElementById('dc-vix').textContent   = f(mkt.vix,1);
-    document.getElementById('dc-qqq').textContent   = mkt.qqq_above_200 ? 'Above ✓' : 'Below ✗';
-    const emaUp = mkt.ema8 > mkt.ema21;
-    setDCSig('dc-psig', '', '');
-    setDCSig('dc-esig', emaUp ? 'sig-green' : 'sig-red', emaUp ? 'Bullish ↑' : 'Bearish ↓');
-    setDCSig('dc-e21sig', '', '');
-    setDCSig('dc-rsig', mkt.rsi14 > 70 ? 'sig-red' : mkt.rsi14 < 40 ? 'sig-yellow' : 'sig-green', mkt.rsi14 > 70 ? 'Overbought' : mkt.rsi14 < 40 ? 'Oversold' : 'In range');
-    setDCSig('dc-vsig', mkt.vix < 20 ? 'sig-green' : mkt.vix > 30 ? 'sig-red' : 'sig-yellow', mkt.vix < 20 ? 'Low fear' : mkt.vix > 30 ? 'Danger' : 'Elevated');
-    setDCSig('dc-qsig', mkt.qqq_above_200 ? 'sig-green' : 'sig-red', mkt.qqq_above_200 ? 'Trend OK' : 'Trend broken');
-
-    // ── STEP 4: Run algo ─────────────────────────────────────────────────
-    setStep(4, 'active', 'Checking all algo rules...');
-    setRing('step4', 80, 'Analyzing');
-    await sleep(200);
-
-    const { verdict, exitReason, rules } = runAlgo(mkt, pos, entry, daysHeld, earnings);
-
-    setStep(4, 'done', `${rules.length} rules checked · Verdict: ${verdict}`, true);
-
-    // ── STEP 5: Render ───────────────────────────────────────────────────
-    setStep(5, 'active', 'Generating your instructions...');
-    setRing('step5', 95, 'Almost done');
-
-    const action = buildAction(verdict, exitReason, mkt.tqqq_price, mkt.vix, entry);
-    renderVerdict(verdict, exitReason, rules, action, today);
-
-    // ── AI COMMENTARY ────────────────────────────────────────────────────
-    const commentRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: `You are a direct, no-fluff market analyst. Today's TQQQ algo data: price $${f(mkt.tqqq_price)}, EMA8 $${f(mkt.ema8)} vs EMA21 $${f(mkt.ema21)} (${emaUp?'bullish':'bearish'}), RSI ${f(mkt.rsi14,1)}, VIX ${f(mkt.vix,1)}, QQQ ${mkt.qqq_above_200?'above':'below'} 200 EMA. Verdict: ${verdict}${exitReason?' ('+exitReason+')':''}. In 2–3 plain sentences, explain to a non-expert trader WHY the system gave this verdict today and what the biggest risk to watch is. Be specific about the numbers. No bullet points.`
-        }]
-      })
-    });
-
-    const commentJson = await commentRes.json();
-    const commentText = commentJson.content?.find(b=>b.type==='text')?.text || '';
-    document.getElementById('aiText').textContent = commentText;
-    document.getElementById('aiBox').className = 'ai-box show';
-
-    setRing('done', 100, 'Complete');
-    setStep(5, 'done', 'Analysis complete ✓', true);
-
-    // Update header
-    document.getElementById('lastRunTime').textContent = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-    document.getElementById('lastStatus').textContent  = verdict;
-
-    // Close overlay after brief pause so user sees 100%
-    await sleep(900);
-    document.getElementById('loadingOverlay').className = 'loading-overlay';
-    document.getElementById('dataConfirmed').className  = 'data-confirmed show';
-    document.getElementById('verdictBox').scrollIntoView({behavior:'smooth', block:'start'});
-
-  } catch(err) {
-    // Mark current active step as error
-    [1,2,3,4,5].forEach(n => {
-      if (document.getElementById(`icon${n}`).classList.contains('active')) {
-        setStep(n, 'error', err.message || 'Failed', false);
-      }
-    });
-    setRing('error', 0, 'Error');
-    await sleep(1200);
-    document.getElementById('loadingOverlay').className = 'loading-overlay';
-    document.getElementById('errMsg').textContent = err.message || 'Something went wrong. Please try again.';
-    document.getElementById('errorBox').className = 'error-box show';
-    console.error(err);
-  } finally {
-    document.getElementById('runBtn').disabled = false;
-  }
 }
 
-function setDCSig(id, cls, text) {
-  const el = document.getElementById(id);
-  el.className = `dc-signal ${cls}`;
-  el.textContent = text;
+function setStep(id, status) {
+    document.getElementById(id).className = `step ${status}`;
 }
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-// ── ALGO LOGIC ──────────────────────────────────────────────────────────────
-function runAlgo(mkt, pos, entry, daysHeld, earnings) {
-  const { tqqq_price:tqqq, ema8, ema21, rsi14:rsi, vix, qqq_above_200:macro, volume_signal:vol } = mkt;
-  const rules = [];
-  let verdict = '', exitReason = '';
-
-  if (pos === 'long' && entry) {
-    const pnl = ((tqqq - entry) / entry) * 100;
-    const ps  = (pnl>=0?'+':'')+pnl.toFixed(1)+'%';
-
-    if (vix >= 30) {
-      verdict = 'SELL'; exitReason = 'VIX SPIKE';
-      rules.push({cls:'fail',icon:'🔴',text:`VIX at ${f(vix,1)} — above 30. Exit ALL positions at tomorrow's open. Capital preservation.`});
-    } else if (pnl <= -10) {
-      verdict = 'SELL'; exitReason = 'STOP-LOSS';
-      rules.push({cls:'fail',icon:'🔴',text:`Position is ${ps} from entry $${entry}. Stop-loss hit. Exit 100% at tomorrow's open. No exceptions.`});
-    } else if (pnl >= 20) {
-      verdict = 'SELL'; exitReason = 'PROFIT TARGET';
-      rules.push({cls:'pass',icon:'🟢',text:`Profit target reached at ${ps} from entry. Sell 50–75% at tomorrow's open. Set 8% trailing stop on remainder.`});
-    } else if (ema8 < ema21) {
-      verdict = 'SELL'; exitReason = 'EMA REVERSAL';
-      rules.push({cls:'fail',icon:'🔴',text:`EMA8 ($${f(ema8)}) crossed below EMA21 ($${f(ema21)}). Trend reversed. Exit full position at tomorrow's open.`});
-    } else if (daysHeld >= 10 && pnl < 10) {
-      verdict = 'SELL'; exitReason = 'TIME STOP';
-      rules.push({cls:'warn',icon:'🟡',text:`${daysHeld} days held with only ${ps} gain. Capital trapped. Exit tomorrow and reset.`});
-    } else if (earnings === 'yes') {
-      verdict = 'SELL'; exitReason = 'EARNINGS RISK';
-      rules.push({cls:'warn',icon:'🟡',text:`Big 5 earnings tomorrow. Reduce position 50% today before close. Re-enter after print if signals confirm.`});
-    } else {
-      verdict = 'HOLD';
-      rules.push({cls:'pass',icon:'✅',text:`Position is ${ps} from entry ($${entry}). No exit rules triggered.`});
-      if (ema8 > ema21) rules.push({cls:'pass',icon:'✅',text:`EMA8 ($${f(ema8)}) still above EMA21 ($${f(ema21)}). Trend intact.`});
-      if (vix >= 20) rules.push({cls:'warn',icon:'⚠️',text:`VIX at ${f(vix,1)} — elevated. Consider trimming 25–50% as precaution.`});
-      if (pnl >= 15) rules.push({cls:'warn',icon:'⚠️',text:`Up ${ps} — set trailing stop at 8% below today's close ($${(tqqq*0.92).toFixed(2)}).`});
-      if (rsi > 72)  rules.push({cls:'warn',icon:'⚠️',text:`RSI at ${f(rsi,1)} — overbought. Consider taking partial profits now.`});
+function calculateRSI(prices, period) {
+    let gains = 0, losses = 0;
+    for (let i = prices.length - period; i < prices.length; i++) {
+        let diff = prices[i] - prices[i - 1];
+        diff >= 0 ? gains += diff : losses -= diff;
     }
-  } else {
-    if (!macro) {
-      rules.push({cls:'fail',icon:'🔴',text:`QQQ is BELOW its 200-day EMA. Macro filter fails. Stay in cash until QQQ recovers.`});
-      verdict = 'FLAT';
-    } else {
-      rules.push({cls:'pass',icon:'✅',text:`QQQ is above its 200-day EMA. Macro filter passes. ✓`});
-    }
-    if (ema8 > ema21) {
-      rules.push({cls:'pass',icon:'✅',text:`EMA8 ($${f(ema8)}) above EMA21 ($${f(ema21)}) — bullish trend. ✓`});
-    } else {
-      rules.push({cls:'fail',icon:'🔴',text:`EMA8 ($${f(ema8)}) below EMA21 ($${f(ema21)}) — no uptrend. Wait for crossover.`});
-      if (verdict !== 'FLAT') verdict = 'FLAT';
-    }
-    if (rsi >= 40 && rsi <= 65) {
-      rules.push({cls:'pass',icon:'✅',text:`RSI at ${f(rsi,1)} — ideal entry zone (40–65). ✓`});
-    } else if (rsi > 65 && rsi <= 75) {
-      rules.push({cls:'warn',icon:'⚠️',text:`RSI at ${f(rsi,1)} — elevated. Wait for pullback to 45–60.`});
-      if (verdict !== 'FLAT') verdict = 'FLAT';
-    } else if (rsi > 75) {
-      rules.push({cls:'fail',icon:'🔴',text:`RSI at ${f(rsi,1)} — overbought. Do not chase. Wait for cooldown below 65.`});
-      if (verdict !== 'FLAT') verdict = 'FLAT';
-    } else {
-      rules.push({cls:'warn',icon:'⚠️',text:`RSI at ${f(rsi,1)} — oversold. Wait for recovery above 40.`});
-      if (verdict !== 'FLAT') verdict = 'FLAT';
-    }
-    if (vix < 20) {
-      rules.push({cls:'pass',icon:'✅',text:`VIX at ${f(vix,1)} — low fear. Full position size allowed. ✓`});
-    } else if (vix < 25) {
-      rules.push({cls:'warn',icon:'⚠️',text:`VIX at ${f(vix,1)} — moderate fear. Use 50% position size if entering.`});
-    } else if (vix < 30) {
-      rules.push({cls:'fail',icon:'🔴',text:`VIX at ${f(vix,1)} — high fear. No new entries per system rules.`});
-      if (verdict !== 'FLAT') verdict = 'FLAT';
-    } else {
-      rules.push({cls:'fail',icon:'🔴',text:`VIX at ${f(vix,1)} — danger zone. Stay completely flat.`});
-      verdict = 'FLAT';
-    }
-    if (vol === 'high') {
-      rules.push({cls:'pass',icon:'✅',text:`Volume ≥1.2× average — breakout confirmed. ✓`});
-    } else if (vol === 'normal') {
-      rules.push({cls:'warn',icon:'⚠️',text:`Volume average — move lacks conviction. Proceed cautiously.`});
-    } else {
-      rules.push({cls:'fail',icon:'🔴',text:`Volume below average — risk of false breakout. Wait for strong-volume day.`});
-      if (verdict !== 'FLAT') verdict = 'FLAT';
-    }
-    if (earnings === 'yes') {
-      rules.push({cls:'warn',icon:'⚠️',text:`Big 5 earnings tomorrow. No new position today — wait until after the report.`});
-      if (verdict !== 'FLAT') verdict = 'FLAT';
-    }
-    if (verdict !== 'FLAT') verdict = 'BUY';
-  }
-  return { verdict, exitReason, rules };
+    let rs = (gains / period) / (losses / period);
+    return (100 - (100 / (1 + rs))).toFixed(2);
 }
 
-function buildAction(verdict, exitReason, price, vix, entry) {
-  const sizeNote = vix >= 20 && vix < 25 ? ' at 50% position size (VIX elevated)' : '';
-  if (verdict === 'BUY')
-    return `<strong>Action for tomorrow's open:</strong> Enter a long position in TQQQ${sizeNote}. Immediately place a stop-loss order at 10% below your entry price. Profit target: +20–25% from entry. Log your entry price and today's date.`;
-  if (verdict === 'HOLD')
-    return `<strong>Action:</strong> No changes. Continue holding. Update your trailing stop to 8% below today's close ($${(price*0.92).toFixed(2)}). Check again tomorrow after close.`;
-  if (verdict === 'SELL' && exitReason === 'EARNINGS RISK')
-    return `<strong>Action for today before market close:</strong> Sell 50% of your position now. Set a tight trailing stop on the remaining half. Reassess the day after the earnings report.`;
-  if (verdict === 'SELL' && exitReason === 'PROFIT TARGET')
-    return `<strong>Action for tomorrow's open:</strong> Sell 50–75% at market open. Set an 8% trailing stop on any shares you keep.`;
-  if (verdict === 'SELL')
-    return `<strong>Action for tomorrow's open:</strong> Exit your full TQQQ position at market open. Do not wait for a better price — the signal has fired. Stay flat in cash and wait for the next clean setup.`;
-  return `<strong>Action:</strong> Stay in cash. Do not force a trade. Wait for all entry conditions to align. Patience is the edge.`;
+function calculateEMA(prices, period) {
+    const k = 2 / (period + 1);
+    let ema = prices[0];
+    for (let i = 1; i < prices.length; i++) {
+        ema = prices[i] * k + ema * (1 - k);
+    }
+    return ema;
 }
 
-function renderVerdict(verdict, exitReason, rules, action, today) {
-  const subs = {
-    BUY:  'All entry conditions met — enter at tomorrow\'s open',
-    HOLD: 'No exit triggers — maintain your position',
-    SELL: `Exit: ${exitReason} — act at tomorrow's open`,
-    FLAT: 'Conditions not met — stay in cash'
-  };
-  const vb = document.getElementById('verdictBox');
-  vb.className = `verdict-box show ${verdict}`;
-  document.getElementById('verdictLabel').textContent = verdict;
-  document.getElementById('verdictDate').textContent  = today;
-  document.getElementById('verdictSub').textContent   = subs[verdict];
-  document.getElementById('rulesList').innerHTML = rules.map(r =>
-    `<div class="rule-line ${r.cls}"><span class="rule-icon">${r.icon}</span><span>${r.text}</span></div>`
-  ).join('');
-  document.getElementById('verdictAction').innerHTML = action;
+function displayResults(verdict, sub, price, rsi, vxx) {
+    const box = document.getElementById('verdictBox');
+    box.className = `verdict-box ${verdict}`;
+    document.getElementById('vLabel').textContent = verdict;
+    document.getElementById('vSub').textContent = sub;
+    document.getElementById('statPrice').textContent = `$${price.toFixed(2)}`;
+    document.getElementById('statRSI').textContent = rsi;
+    document.getElementById('statVXX').textContent = vxx.toFixed(2);
+    document.getElementById('runtime').textContent = "Last Updated: " + new Date().toLocaleTimeString();
 }
 </script>
 </body>
