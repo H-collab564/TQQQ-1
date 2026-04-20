@@ -34,14 +34,16 @@
   button:hover { opacity: 0.8; transform: translateY(-1px); }
 
   .step-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 15px; }
-  .step { padding: 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 12px; opacity: 0.5; }
-  .step.active { opacity: 1; border-color: var(--accent); color: var(--accent); }
+  .step { padding: 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 11px; opacity: 0.5; }
+  .step.active { opacity: 1; border-color: var(--accent); color: var(--accent); animation: pulse 1.5s infinite; }
   .step.success { opacity: 1; border-color: var(--green); color: var(--green); }
+  @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
 
-  .verdict-box { display: none; text-align: center; padding: 40px; border-radius: 16px; margin-top: 20px; transition: 0.3s; }
-  .verdict-box.BUY { display: block; background: rgba(0,255,136,0.1); border: 2px solid var(--green); }
-  .verdict-box.SELL { display: block; background: rgba(255,62,94,0.1); border: 2px solid var(--red); }
-  .verdict-box.HOLD { display: block; background: rgba(255,214,0,0.1); border: 2px solid var(--yellow); }
+  .verdict-box { display: none; text-align: center; padding: 40px; border-radius: 16px; margin-top: 20px; }
+  .verdict-box.show { display: block; }
+  .verdict-box.BUY { background: rgba(0,255,136,0.1); border: 2px solid var(--green); }
+  .verdict-box.SELL { background: rgba(255,62,94,0.1); border: 2px solid var(--red); }
+  .verdict-box.HOLD { background: rgba(255,214,0,0.1); border: 2px solid var(--yellow); }
   
   .v-label { font-size: 48px; font-weight: 800; font-family: 'Syne', sans-serif; letter-spacing: 2px; }
   .v-sub { font-size: 14px; margin-top: 10px; color: var(--muted); }
@@ -55,20 +57,20 @@
 
 <div class="container">
   <div class="header">
-    <div class="title">TQQQ ALGO v2.0</div>
-    <div id="runtime" style="color:var(--muted); font-size:12px;">System Ready</div>
+    <div class="title">TQQQ ALGO v2.1</div>
+    <div id="runtime" style="color:var(--muted); font-size:12px;">Ready for Analysis</div>
   </div>
 
   <div class="panel">
     <div class="input-group">
       <input type="text" id="symbolInput" value="TQQQ" placeholder="Enter Ticker">
-      <button onclick="runAlgorithm()">RUN ANALYSIS</button>
+      <button id="runBtn" onclick="runAlgorithm()">RUN ANALYSIS</button>
     </div>
-    <div class="step-list" id="stepList">
-      <div class="step" id="step1">1. AUTHENTICATING</div>
-      <div class="step" id="step2">2. FETCHING PRICE DATA</div>
-      <div class="step" id="step3">3. ANALYZING VXX PROXY</div>
-      <div class="step" id="step4">4. CALCULATING RSI/EMA</div>
+    <div class="step-list">
+      <div class="step" id="step1">1. INITIALIZING</div>
+      <div class="step" id="step2">2. FETCHING TQQQ DATA</div>
+      <div class="step" id="step3">3. FETCHING VXX DATA</div>
+      <div class="step" id="step4">4. SYSTEM VERDICT</div>
     </div>
   </div>
 
@@ -78,15 +80,15 @@
     
     <div class="stats-grid">
       <div class="stat-card">
-        <span class="stat-label">Current Price</span>
+        <span class="stat-label">Price</span>
         <span class="stat-val" id="statPrice">--</span>
       </div>
       <div class="stat-card">
-        <span class="stat-label">Relative Strength (RSI)</span>
+        <span class="stat-label">RSI (14)</span>
         <span class="stat-val" id="statRSI">--</span>
       </div>
       <div class="stat-card">
-        <span class="stat-label">Volatility (VXX)</span>
+        <span class="stat-label">VXX Proxy</span>
         <span class="stat-val" id="statVXX">--</span>
       </div>
     </div>
@@ -94,90 +96,83 @@
 </div>
 
 <script>
+// Key from your setup
 const API_KEY = "fs4139MjTB8rclaerCjk0CMB59W7QCMS";
 
 async function runAlgorithm() {
     const symbol = document.getElementById('symbolInput').value.toUpperCase();
+    const btn = document.getElementById('runBtn');
+    btn.disabled = true;
+    btn.textContent = "PROCESSING...";
+
+    // Reset UI
     const steps = ['step1', 'step2', 'step3', 'step4'];
     steps.forEach(id => document.getElementById(id).className = 'step');
+    document.getElementById('verdictBox').className = 'verdict-box';
 
     try {
-        setStep('step1', 'active');
-        await new Promise(r => setTimeout(r, 300));
         setStep('step1', 'success');
 
-        // Step 2: Fetch TQQQ Data
+        // Step 2: TQQQ Data
         setStep('step2', 'active');
-        const endDate = new Date().toISOString().split('T')[0];
-        const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        
-        // Refined Massive.com URL structure
-        const priceUrl = `https://api.massive.com/v3/aggs/ticker/${symbol}/range/1/day/${startDate}/${endDate}?apiKey=${API_KEY}`;
-        
-        const priceData = await fetchWithRetry(priceUrl);
-        if(!priceData.results || priceData.results.length === 0) {
-            throw new Error(`No data returned for ${symbol}. Check if the market is open or API key is active.`);
-        }
-        
+        const priceData = await fetchStockData(symbol);
         const closes = priceData.results.map(r => r.c);
-        const currentPrice = closes[closes.length - 1];
         setStep('step2', 'success');
 
-        // Step 3: Fetch VXX (Volatility Proxy)
+        // Step 3: VXX Proxy (Rate limit safety delay)
         setStep('step3', 'active');
-        const vxxUrl = `https://api.massive.com/v3/aggs/ticker/VXX/range/1/day/${startDate}/${endDate}?apiKey=${API_KEY}`;
-        const vxxData = await fetchWithRetry(vxxUrl);
-        const vxxResults = vxxData.results;
-        const vxxPrice = vxxResults[vxxResults.length - 1].c;
-        const vxxPrev = vxxResults[vxxResults.length - 2].c;
-        const volSpiking = vxxPrice > (vxxPrev * 1.06); // Trigger on 6% spike
+        await new Promise(r => setTimeout(r, 1200)); 
+        const vxxData = await fetchStockData('VXX');
+        const vxxPrice = vxxData.results[vxxData.results.length - 1].c;
+        const vxxPrev = vxxData.results[vxxData.results.length - 2].c;
+        const volSpike = vxxPrice > (vxxPrev * 1.05);
         setStep('step3', 'success');
 
         // Step 4: Logic
         setStep('step4', 'active');
+        const currentPrice = closes[closes.length - 1];
         const rsi = calculateRSI(closes, 14);
         const ema200 = calculateEMA(closes, 200);
-        setStep('step4', 'success');
 
         let verdict = "HOLD";
-        let subText = "Trend is stable. No exit triggers hit.";
+        let sub = "Market conditions are neutral.";
 
-        if (currentPrice > ema200 && rsi < 42 && !volSpiking) {
+        if (currentPrice > ema200 && rsi < 42 && !volSpike) {
             verdict = "BUY";
-            subText = "Buy Signal: Price above 200 EMA and RSI is oversold.";
-        } else if (rsi > 78 || currentPrice < ema200 || volSpiking) {
+            sub = "Bullish trend confirmed with oversold RSI entry.";
+        } else if (rsi > 78 || currentPrice < ema200 || volSpike) {
             verdict = "SELL";
-            subText = volSpiking ? "Volatility Spike Detected (VXX)." : "Technical Breakdown or Overbought.";
+            sub = volSpike ? "Volatility Spike Warning." : "Technical breakdown detected.";
         }
+        setStep('step4', 'success');
 
-        displayResults(verdict, subText, currentPrice, rsi, vxxPrice);
+        displayResults(verdict, sub, currentPrice, rsi, vxxPrice);
 
     } catch (err) {
         console.error(err);
         document.getElementById('vSub').innerHTML = `<span style="color:red">ERROR: ${err.message}</span>`;
         document.getElementById('verdictBox').className = 'verdict-box show';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "RUN ANALYSIS";
     }
 }
 
-// Robust Fetch Function to prevent the "Position 4" JSON error
-async function fetchWithRetry(url) {
-    const response = await fetch(url);
-    const text = await response.text(); // Get raw text first
+async function fetchStockData(ticker) {
+    const to = new Date().toISOString().split('T')[0];
+    const from = new Date(Date.now() - 380 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     
-    try {
-        // Clean text: removes potential UTF-8 BOM or leading whitespace
-        const cleanJson = text.trim().replace(/^\uFEFF/, '');
-        return JSON.parse(cleanJson);
-    } catch (e) {
-        // If it's not JSON, it's probably an HTML error page from the API provider
-        if (text.includes("Unauthorized") || text.includes("401")) {
-            throw new Error("API Key Unauthorized. Check your Massive.com subscription.");
-        }
-        if (text.includes("429")) {
-            throw new Error("Rate Limit Exceeded. Free keys have limits.");
-        }
-        throw new Error("API returned non-JSON data. This usually happens due to CORS or an invalid URL.");
+    // Using the established aggregates endpoint
+    const url = `https://api.polygon.io/v2/aggs/ticker/${ticker}/range/1/day/${from}/${to}?adjusted=true&sort=asc&limit=500&apiKey=${API_KEY}`;
+
+    const response = await fetch(url);
+    if (!response.ok) {
+        if(response.status === 429) throw new Error("Rate limit hit. Wait 60 seconds.");
+        throw new Error(`API Error ${response.status}`);
     }
+    const data = await response.json();
+    if (!data.results) throw new Error(`No data found for ${ticker}`);
+    return data;
 }
 
 function setStep(id, status) {
@@ -185,16 +180,12 @@ function setStep(id, status) {
 }
 
 function calculateRSI(prices, period) {
-    if (prices.length < period + 1) return 50;
     let gains = 0, losses = 0;
     for (let i = prices.length - period; i < prices.length; i++) {
         let diff = prices[i] - prices[i - 1];
         diff >= 0 ? gains += diff : losses -= diff;
     }
-    let avgGain = gains / period;
-    let avgLoss = losses / period;
-    if (avgLoss === 0) return 100;
-    let rs = avgGain / avgLoss;
+    let rs = (gains / period) / (losses / period);
     return (100 - (100 / (1 + rs))).toFixed(2);
 }
 
@@ -202,7 +193,7 @@ function calculateEMA(prices, period) {
     const k = 2 / (period + 1);
     let ema = prices[0];
     for (let i = 1; i < prices.length; i++) {
-        ema = (prices[i] * k) + (ema * (1 - k));
+        ema = prices[i] * k + ema * (1 - k);
     }
     return ema;
 }
@@ -215,9 +206,8 @@ function displayResults(verdict, sub, price, rsi, vxx) {
     document.getElementById('statPrice').textContent = `$${price.toFixed(2)}`;
     document.getElementById('statRSI').textContent = rsi;
     document.getElementById('statVXX').textContent = vxx.toFixed(2);
-    document.getElementById('runtime').textContent = "Last Run: " + new Date().toLocaleTimeString();
+    document.getElementById('runtime').textContent = "Last Updated: " + new Date().toLocaleTimeString();
 }
-  
 </script>
 </body>
 </html>
