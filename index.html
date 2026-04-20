@@ -102,19 +102,22 @@ async function runAlgorithm() {
     steps.forEach(id => document.getElementById(id).className = 'step');
 
     try {
-        // Step 1: Auth
         setStep('step1', 'active');
-        await new Promise(r => setTimeout(r, 500)); // UI polish
+        await new Promise(r => setTimeout(r, 300));
         setStep('step1', 'success');
 
-        // Step 2: Fetch TQQQ Data (using Massive v3 Aggregates)
+        // Step 2: Fetch TQQQ Data
         setStep('step2', 'active');
         const endDate = new Date().toISOString().split('T')[0];
-        const startDate = new Date(Date.now() - 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
         
-        const priceRes = await fetch(`https://api.massive.com/v3/aggs/ticker/${symbol}/range/1/day/${startDate}/${endDate}?apiKey=${API_KEY}`);
-        const priceData = await priceRes.json();
-        if(!priceData.results) throw new Error("Data fetch failed");
+        // Refined Massive.com URL structure
+        const priceUrl = `https://api.massive.com/v3/aggs/ticker/${symbol}/range/1/day/${startDate}/${endDate}?apiKey=${API_KEY}`;
+        
+        const priceData = await fetchWithRetry(priceUrl);
+        if(!priceData.results || priceData.results.length === 0) {
+            throw new Error(`No data returned for ${symbol}. Check if the market is open or API key is active.`);
+        }
         
         const closes = priceData.results.map(r => r.c);
         const currentPrice = closes[closes.length - 1];
@@ -122,35 +125,58 @@ async function runAlgorithm() {
 
         // Step 3: Fetch VXX (Volatility Proxy)
         setStep('step3', 'active');
-        const vxxRes = await fetch(`https://api.massive.com/v3/aggs/ticker/VXX/range/1/day/${startDate}/${endDate}?apiKey=${API_KEY}`);
-        const vxxData = await vxxRes.json();
-        const vxxPrice = vxxData.results[vxxData.results.length - 1].c;
-        const vxxPrev = vxxData.results[vxxData.results.length - 2].c;
-        const volSpiking = vxxPrice > vxxPrev * 1.05; // 5% spike in VXX is a warning
+        const vxxUrl = `https://api.massive.com/v3/aggs/ticker/VXX/range/1/day/${startDate}/${endDate}?apiKey=${API_KEY}`;
+        const vxxData = await fetchWithRetry(vxxUrl);
+        const vxxResults = vxxData.results;
+        const vxxPrice = vxxResults[vxxResults.length - 1].c;
+        const vxxPrev = vxxResults[vxxResults.length - 2].c;
+        const volSpiking = vxxPrice > (vxxPrev * 1.06); // Trigger on 6% spike
         setStep('step3', 'success');
 
-        // Step 4: Calculate Technicals
+        // Step 4: Logic
         setStep('step4', 'active');
         const rsi = calculateRSI(closes, 14);
         const ema200 = calculateEMA(closes, 200);
         setStep('step4', 'success');
 
-        // Determine Verdict
         let verdict = "HOLD";
-        let subText = "Trend is stable. No immediate action required.";
+        let subText = "Trend is stable. No exit triggers hit.";
 
-        if (currentPrice > ema200 && rsi < 40 && !volSpiking) {
+        if (currentPrice > ema200 && rsi < 42 && !volSpiking) {
             verdict = "BUY";
-            subText = "Golden setup: Price above long-term trend with oversold RSI.";
-        } else if (rsi > 75 || currentPrice < ema200 || volSpiking) {
+            subText = "Buy Signal: Price above 200 EMA and RSI is oversold.";
+        } else if (rsi > 78 || currentPrice < ema200 || volSpiking) {
             verdict = "SELL";
-            subText = rsi > 75 ? "Overbought conditions detected." : "Trend breakdown or Volatility spike.";
+            subText = volSpiking ? "Volatility Spike Detected (VXX)." : "Technical Breakdown or Overbought.";
         }
 
         displayResults(verdict, subText, currentPrice, rsi, vxxPrice);
 
     } catch (err) {
-        alert("Error: " + err.message);
+        console.error(err);
+        document.getElementById('vSub').innerHTML = `<span style="color:red">ERROR: ${err.message}</span>`;
+        document.getElementById('verdictBox').className = 'verdict-box show';
+    }
+}
+
+// Robust Fetch Function to prevent the "Position 4" JSON error
+async function fetchWithRetry(url) {
+    const response = await fetch(url);
+    const text = await response.text(); // Get raw text first
+    
+    try {
+        // Clean text: removes potential UTF-8 BOM or leading whitespace
+        const cleanJson = text.trim().replace(/^\uFEFF/, '');
+        return JSON.parse(cleanJson);
+    } catch (e) {
+        // If it's not JSON, it's probably an HTML error page from the API provider
+        if (text.includes("Unauthorized") || text.includes("401")) {
+            throw new Error("API Key Unauthorized. Check your Massive.com subscription.");
+        }
+        if (text.includes("429")) {
+            throw new Error("Rate Limit Exceeded. Free keys have limits.");
+        }
+        throw new Error("API returned non-JSON data. This usually happens due to CORS or an invalid URL.");
     }
 }
 
@@ -159,12 +185,16 @@ function setStep(id, status) {
 }
 
 function calculateRSI(prices, period) {
+    if (prices.length < period + 1) return 50;
     let gains = 0, losses = 0;
     for (let i = prices.length - period; i < prices.length; i++) {
         let diff = prices[i] - prices[i - 1];
         diff >= 0 ? gains += diff : losses -= diff;
     }
-    let rs = (gains / period) / (losses / period);
+    let avgGain = gains / period;
+    let avgLoss = losses / period;
+    if (avgLoss === 0) return 100;
+    let rs = avgGain / avgLoss;
     return (100 - (100 / (1 + rs))).toFixed(2);
 }
 
@@ -172,21 +202,22 @@ function calculateEMA(prices, period) {
     const k = 2 / (period + 1);
     let ema = prices[0];
     for (let i = 1; i < prices.length; i++) {
-        ema = prices[i] * k + ema * (1 - k);
+        ema = (prices[i] * k) + (ema * (1 - k));
     }
     return ema;
 }
 
 function displayResults(verdict, sub, price, rsi, vxx) {
     const box = document.getElementById('verdictBox');
-    box.className = `verdict-box ${verdict}`;
+    box.className = `verdict-box show ${verdict}`;
     document.getElementById('vLabel').textContent = verdict;
     document.getElementById('vSub').textContent = sub;
     document.getElementById('statPrice').textContent = `$${price.toFixed(2)}`;
     document.getElementById('statRSI').textContent = rsi;
     document.getElementById('statVXX').textContent = vxx.toFixed(2);
-    document.getElementById('runtime').textContent = "Last Updated: " + new Date().toLocaleTimeString();
+    document.getElementById('runtime').textContent = "Last Run: " + new Date().toLocaleTimeString();
 }
+  
 </script>
 </body>
 </html>
