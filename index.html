@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TQQQ Pro Dashboard</title>
+<title>TQQQ Pro Dashboard v2.2</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -32,12 +32,12 @@
     border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s;
   }
   button:hover { opacity: 0.8; transform: translateY(-1px); }
+  button:disabled { background: var(--muted); cursor: not-allowed; }
 
   .step-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 15px; }
   .step { padding: 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 11px; opacity: 0.5; }
-  .step.active { opacity: 1; border-color: var(--accent); color: var(--accent); animation: pulse 1.5s infinite; }
+  .step.active { opacity: 1; border-color: var(--accent); color: var(--accent); }
   .step.success { opacity: 1; border-color: var(--green); color: var(--green); }
-  @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
 
   .verdict-box { display: none; text-align: center; padding: 40px; border-radius: 16px; margin-top: 20px; }
   .verdict-box.show { display: block; }
@@ -46,19 +46,29 @@
   .verdict-box.HOLD { background: rgba(255,214,0,0.1); border: 2px solid var(--yellow); }
   
   .v-label { font-size: 48px; font-weight: 800; font-family: 'Syne', sans-serif; letter-spacing: 2px; }
-  .v-sub { font-size: 14px; margin-top: 10px; color: var(--muted); }
-  .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 30px; }
-  .stat-card { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; }
+  .v-sub { font-size: 14px; margin-top: 10px; color: var(--muted); margin-bottom: 20px; }
+  
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 10px; }
+  .stat-card { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
   .stat-val { font-size: 18px; font-weight: bold; color: white; display: block; }
   .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+
+  .scorecard { margin-top: 30px; padding-top: 25px; border-top: 1px solid var(--border); text-align: left; }
+  .score-title { font-size: 12px; color: var(--muted); text-transform: uppercase; margin-bottom: 15px; letter-spacing: 1px; }
+  .criteria-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+  .criteria-text { font-size: 14px; font-weight: 600; }
+  .criteria-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .status-icon { font-weight: bold; font-size: 14px; padding: 4px 10px; border-radius: 4px; }
+  .pass { background: rgba(0,255,136,0.1); color: var(--green); }
+  .fail { background: rgba(255,62,94,0.1); color: var(--red); }
 </style>
 </head>
 <body>
 
 <div class="container">
   <div class="header">
-    <div class="title">TQQQ ALGO v2.1</div>
-    <div id="runtime" style="color:var(--muted); font-size:12px;">Ready for Analysis</div>
+    <div class="title">TQQQ ALGO v2.2</div>
+    <div id="runtime" style="color:var(--muted); font-size:12px;">System Ready</div>
   </div>
 
   <div class="panel">
@@ -69,8 +79,8 @@
     <div class="step-list">
       <div class="step" id="step1">1. INITIALIZING</div>
       <div class="step" id="step2">2. FETCHING TQQQ DATA</div>
-      <div class="step" id="step3">3. FETCHING VXX DATA</div>
-      <div class="step" id="step4">4. SYSTEM VERDICT</div>
+      <div class="step" id="step3">3. ANALYZING VOLATILITY</div>
+      <div class="step" id="step4">4. CALCULATING VERDICT</div>
     </div>
   </div>
 
@@ -88,24 +98,29 @@
         <span class="stat-val" id="statRSI">--</span>
       </div>
       <div class="stat-card">
-        <span class="stat-label">VXX Proxy</span>
-        <span class="stat-val" id="statVXX">--</span>
+        <span class="stat-label">Stop Loss (12.5%)</span>
+        <span class="stat-val" id="statStop" style="color:var(--red)">--</span>
       </div>
+    </div>
+
+    <div class="scorecard">
+      <div class="score-title">Technical Scorecard</div>
+      <div id="criteriaList"></div>
     </div>
   </div>
 </div>
 
 <script>
-// Key from your setup
 const API_KEY = "fs4139MjTB8rclaerCjk0CMB59W7QCMS";
 
 async function runAlgorithm() {
     const symbol = document.getElementById('symbolInput').value.toUpperCase();
     const btn = document.getElementById('runBtn');
+    
     btn.disabled = true;
-    btn.textContent = "PROCESSING...";
-
-    // Reset UI
+    btn.textContent = "RUNNING...";
+    
+    // UI Reset
     const steps = ['step1', 'step2', 'step3', 'step4'];
     steps.forEach(id => document.getElementById(id).className = 'step');
     document.getElementById('verdictBox').className = 'verdict-box';
@@ -113,45 +128,46 @@ async function runAlgorithm() {
     try {
         setStep('step1', 'success');
 
-        // Step 2: TQQQ Data
+        // Step 2: Main Ticker Data
         setStep('step2', 'active');
         const priceData = await fetchStockData(symbol);
         const closes = priceData.results.map(r => r.c);
         setStep('step2', 'success');
 
-        // Step 3: VXX Proxy (Rate limit safety delay)
+        // Step 3: VXX Proxy Data (Rate Limit Buffer)
         setStep('step3', 'active');
         await new Promise(r => setTimeout(r, 1200)); 
         const vxxData = await fetchStockData('VXX');
-        const vxxPrice = vxxData.results[vxxData.results.length - 1].c;
-        const vxxPrev = vxxData.results[vxxData.results.length - 2].c;
+        const vxxResults = vxxData.results;
+        const vxxPrice = vxxResults[vxxResults.length - 1].c;
+        const vxxPrev = vxxResults[vxxResults.length - 2].c;
         const volSpike = vxxPrice > (vxxPrev * 1.05);
         setStep('step3', 'success');
 
-        // Step 4: Logic
+        // Step 4: Logic Processing
         setStep('step4', 'active');
         const currentPrice = closes[closes.length - 1];
         const rsi = calculateRSI(closes, 14);
         const ema200 = calculateEMA(closes, 200);
+        const stopLoss = (currentPrice * 0.875).toFixed(2);
 
         let verdict = "HOLD";
-        let sub = "Market conditions are neutral.";
+        let subText = "Market conditions are neutral. Maintain current posture.";
 
         if (currentPrice > ema200 && rsi < 42 && !volSpike) {
             verdict = "BUY";
-            sub = "Bullish trend confirmed with oversold RSI entry.";
+            subText = "Entry conditions met: Bullish trend with oversold momentum.";
         } else if (rsi > 78 || currentPrice < ema200 || volSpike) {
             verdict = "SELL";
-            sub = volSpike ? "Volatility Spike Warning." : "Technical breakdown detected.";
+            subText = volSpike ? "Volatility Spike Detected (VXX)." : "Trend breakdown or extreme overbought.";
         }
         setStep('step4', 'success');
 
-        displayResults(verdict, sub, currentPrice, rsi, vxxPrice);
+        displayResults(verdict, subText, currentPrice, rsi, vxxPrice, ema200, volSpike, stopLoss);
 
     } catch (err) {
         console.error(err);
-        document.getElementById('vSub').innerHTML = `<span style="color:red">ERROR: ${err.message}</span>`;
-        document.getElementById('verdictBox').className = 'verdict-box show';
+        alert("System Error: " + err.message);
     } finally {
         btn.disabled = false;
         btn.textContent = "RUN ANALYSIS";
@@ -161,22 +177,13 @@ async function runAlgorithm() {
 async function fetchStockData(ticker) {
     const to = new Date().toISOString().split('T')[0];
     const from = new Date(Date.now() - 380 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    
-    // Using the established aggregates endpoint
     const url = `https://api.polygon.io/v2/aggs/ticker/${ticker}/range/1/day/${from}/${to}?adjusted=true&sort=asc&limit=500&apiKey=${API_KEY}`;
-
+    
     const response = await fetch(url);
-    if (!response.ok) {
-        if(response.status === 429) throw new Error("Rate limit hit. Wait 60 seconds.");
-        throw new Error(`API Error ${response.status}`);
-    }
+    if (!response.ok) throw new Error(response.status === 429 ? "Rate Limit: Wait 1m" : `API Error ${response.status}`);
     const data = await response.json();
-    if (!data.results) throw new Error(`No data found for ${ticker}`);
+    if (!data.results) throw new Error("Ticker not found");
     return data;
-}
-
-function setStep(id, status) {
-    document.getElementById(id).className = `step ${status}`;
 }
 
 function calculateRSI(prices, period) {
@@ -198,15 +205,50 @@ function calculateEMA(prices, period) {
     return ema;
 }
 
-function displayResults(verdict, sub, price, rsi, vxx) {
+function setStep(id, status) {
+    document.getElementById(id).className = `step ${status}`;
+}
+
+function displayResults(verdict, sub, price, rsi, vxx, ema200, volSpike, stopLoss) {
     const box = document.getElementById('verdictBox');
     box.className = `verdict-box show ${verdict}`;
     document.getElementById('vLabel').textContent = verdict;
     document.getElementById('vSub').textContent = sub;
     document.getElementById('statPrice').textContent = `$${price.toFixed(2)}`;
     document.getElementById('statRSI').textContent = rsi;
-    document.getElementById('statVXX').textContent = vxx.toFixed(2);
-    document.getElementById('runtime').textContent = "Last Updated: " + new Date().toLocaleTimeString();
+    document.getElementById('statStop').textContent = `$${stopLoss}`;
+
+    const criteria = [
+        { 
+            label: "Uptrend Confirmation", 
+            pass: price > ema200, 
+            desc: `Price ($${price.toFixed(2)}) is above 200 EMA ($${ema200.toFixed(2)})` 
+        },
+        { 
+            label: "Oversold Entry", 
+            pass: rsi < 42, 
+            desc: `Current RSI: ${rsi} (Target: < 42)` 
+        },
+        { 
+            label: "Volatility Guard", 
+            pass: !volSpike, 
+            desc: volSpike ? "VXX 5%+ Spike Detected" : "VXX is stable" 
+        }
+    ];
+
+    document.getElementById('criteriaList').innerHTML = criteria.map(c => `
+        <div class="criteria-row">
+            <div>
+                <div class="criteria-text">${c.label}</div>
+                <div class="criteria-desc">${c.desc}</div>
+            </div>
+            <div class="status-icon ${c.pass ? 'pass' : 'fail'}">
+                ${c.pass ? '✔ PASS' : '✘ FAIL'}
+            </div>
+        </div>
+    `).join('');
+
+    document.getElementById('runtime').textContent = "Last Run: " + new Date().toLocaleTimeString();
 }
 </script>
 </body>
